@@ -6,6 +6,7 @@ import { flagString } from "../args";
 import { loadConfig } from "../config";
 import { extractSignals, scoreSignals } from "../friction";
 import { frictionMarker, resolveRoot } from "../paths";
+import { readStdin } from "../runtime";
 
 interface StopHookPayload {
   transcript_path?: string;
@@ -15,7 +16,7 @@ interface StopHookPayload {
 export async function cmdFrictionCheck(args: ParsedArgs): Promise<void> {
   const root = resolveRoot(flagString(args.flags, "dir"));
 
-  const stdin = await Bun.stdin.text();
+  const stdin = await readStdin();
   let payload: StopHookPayload;
   try {
     payload = JSON.parse(stdin) as StopHookPayload;

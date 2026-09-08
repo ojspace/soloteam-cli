@@ -1,12 +1,25 @@
 import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { ParsedArgs } from "../args";
 import { flagString } from "../args";
 import { writeDefaultConfig } from "../config";
 import { writeAllowlistGitignore } from "../gitignore";
 import { commitTracked, initRepo, isGitRepo, pushBranch, setRemote } from "../git";
+import { installHooks } from "../hooks";
 import { resolveRoot } from "../paths";
 
-const DEFAULT_TRACK = ["CLAUDE.md", "rules/", "context/", "commands/"];
+export const DEFAULT_TRACK = [
+  "CLAUDE.md",
+  "rules/",
+  "context/",
+  "commands/",
+  "skills/",
+  "agents/",
+  "hooks/",
+  "learnings/",
+  "sessions/",
+  "mcp.yaml",
+];
 
 export async function cmdInit(args: ParsedArgs): Promise<void> {
   const remote = args.positional[0];
@@ -36,8 +49,13 @@ export async function cmdInit(args: ParsedArgs): Promise<void> {
   );
   const push = await pushBranch(root, config.branch, true);
 
+  // Lifecycle hooks straight away — init should leave the machine working.
+  const settingsPath = join(root, "settings.json");
+  const added = await installHooks(settingsPath, "soloteam", root);
+
   console.log(`Initialized ${root}`);
   console.log(`  remote: ${config.remote}`);
   console.log(`  tracking: ${config.track.join(", ")}`);
   console.log(`  ${committed ? "committed" : "nothing to commit"}, ${push.ok ? "pushed" : "push skipped/failed"}`);
+  console.log(`  hooks: ${added.length > 0 ? added.join("; ") : `already present in ${settingsPath}`}`);
 }

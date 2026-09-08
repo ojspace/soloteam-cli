@@ -1,14 +1,22 @@
 {
   "name": "soloteam-cli",
-  "version": "0.1.0",
-  "description": "Config sync and friction-based memory nudges for solo developers running Claude Code (or other agent CLIs). Inspired by Tencent's teamai-cli, rebuilt for a team of one.",
+  "version": "0.2.0",
+  "description": "One developer, every machine, every agent in sync. Config sync, multi-agent fan-out, MCP + hooks distribution, and local-first memory (learnings, recall, digest) for solo agent-CLI setups.",
   "type": "module",
   "bin": {
-    "soloteam": "./src/index.ts"
+    "soloteam": "./dist/soloteam.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "bun build src/index.ts --compile --outfile dist/soloteam"
+    "test": "bun test",
+    "build": "bun build src/index.ts --target=node --outfile dist/soloteam.js && chmod +x dist/soloteam.js",
+    "build:binary": "bun build src/index.ts --compile --outfile dist/soloteam",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "yaml": "^2.5.1",
@@ -19,12 +27,12 @@
     "typescript": "^5.5.4"
   },
   "engines": {
-    "bun": ">=1.1.0"
+    "node": ">=18.0.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/orkhan-j/soloteam-cli"
+    "url": "https://github.com/ojspace/soloteam-cli"
   },
-  "keywords": ["claude-code", "agent-cli", "dotfiles-sync", "solo-dev"]
+  "keywords": ["claude-code", "codex", "cursor", "opencode", "agent-cli", "dotfiles-sync", "mcp", "solo-dev", "ai-agents"]
 }
