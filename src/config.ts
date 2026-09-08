@@ -25,6 +25,10 @@ export const ConfigSchema = z.object({
   branch: z.string().default("main"),
   track: z.array(z.string()).min(1, "track must list at least one path"),
   mirrors: z.array(z.string()).default([]),
+  /** Agent ids to fan out to on pull. Empty = auto-detect installed agents. */
+  agents: z.array(z.string()).default([]),
+  /** Path prefixes (relative to root) skipped during fan-out. */
+  exclude: z.array(z.string()).default([]),
   friction: FrictionSchema,
 });
 
@@ -44,8 +48,7 @@ export async function writeDefaultConfig(
   root: string,
   remote: string,
   track: string[],
-): Promise<SoloteamConfig> {
-  const config = ConfigSchema.parse({
+): Promise<SoloteamConfig> {  const config = ConfigSchema.parse({
     remote,
     track,
     friction: {},
@@ -54,4 +57,11 @@ export async function writeDefaultConfig(
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, stringifyYaml(config), "utf8");
   return config;
+}
+
+/** Persist an already-validated config back to soloteam.yaml. */
+export async function saveConfig(root: string, config: SoloteamConfig): Promise<void> {
+  const path = configPath(root);
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, stringifyYaml(ConfigSchema.parse(config)), "utf8");
 }

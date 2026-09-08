@@ -90,3 +90,24 @@ export function scoreSignals(signals: FrictionSignals, weights: FrictionWeights)
     Math.min(signals.corrections, 5) * weights.correction
   );
 }
+
+/** Count tool_use blocks in a transcript — a rough session-size measure. */
+export function countToolUses(transcriptText: string): number {
+  let tools = 0;
+  for (const raw of transcriptText.split("\n")) {
+    const line = raw.trim();
+    if (!line || !line.includes("tool_use")) continue;
+    try {
+      const parsed = JSON.parse(line) as TranscriptLine;
+      const content = parsed.message?.content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (isContentBlock(block) && block.type === "tool_use") tools++;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+  return tools;
+}

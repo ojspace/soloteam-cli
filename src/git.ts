@@ -1,6 +1,6 @@
-import { $ } from "bun";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { runGit } from "./runtime";
 
 export interface GitResult {
   ok: boolean;
@@ -8,12 +8,7 @@ export interface GitResult {
 }
 
 async function git(cwd: string, args: string[]): Promise<GitResult> {
-  try {
-    const result = await $`git ${args}`.cwd(cwd).quiet();
-    return { ok: result.exitCode === 0, stdout: result.stdout.toString().trim() };
-  } catch {
-    return { ok: false, stdout: "" };
-  }
+  return runGit(cwd, args);
 }
 
 export function isGitRepo(root: string): boolean {
