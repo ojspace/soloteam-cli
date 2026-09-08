@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="120" viewBox="0 0 520 120">
+  <rect width="520" height="120" rx="16" fill="#0d1117"/>
+  <circle cx="60" cy="60" r="26" fill="none" stroke="#58a6ff" stroke-width="4"/>
+  <circle cx="60" cy="60" r="6" fill="#58a6ff"/>
+  <text x="110" y="70" font-family="Menlo, Consolas, monospace" font-size="40" fill="#f0f6fc" font-weight="700">soloteam</text>
+  <text x="110" y="95" font-family="Menlo, Consolas, monospace" font-size="15" fill="#8b949e">config sync + friction memory, for a team of one</text>
+</svg>
