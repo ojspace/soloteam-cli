@@ -1,0 +1,37 @@
+name: Publish
+
+# Trusted-publishing release flow (no long-lived npm tokens):
+#   1. Bump "version" in package.json, commit + push to main.
+#   2. Tag the release: git tag v0.3.0 && git push origin v0.3.0
+#   3. This workflow verifies, builds, and publishes via GitHub OIDC.
+#
+# One-time setup on npmjs.com (needs the package to exist first):
+#   soloteam-cli → Settings → Trusted publishing → Add GitHub Actions publisher:
+#     Organization or user: ojspace
+#     Repository:           soloteam-cli
+#     Workflow filename:    publish.yml
+#     Allowed actions:      allow BOTH staged and direct `npm publish`
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write # Required for npm OIDC trusted publishing
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+      - run: npm publish --access public
