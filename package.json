@@ -4,7 +4,7 @@
   "description": "One developer, every machine, every agent in sync. Config sync, multi-agent fan-out, MCP + hooks distribution, and local-first memory (learnings, recall, digest) for solo agent-CLI setups.",
   "type": "module",
   "bin": {
-    "soloteam": "./dist/soloteam.js"
+    "soloteam": "dist/soloteam.js"
   },
   "files": [
     "dist",
@@ -32,7 +32,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ojspace/soloteam-cli"
+    "url": "git+https://github.com/ojspace/soloteam-cli.git"
   },
-  "keywords": ["claude-code", "codex", "cursor", "opencode", "agent-cli", "dotfiles-sync", "mcp", "solo-dev", "ai-agents"]
+  "keywords": [
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "agent-cli",
+    "dotfiles-sync",
+    "mcp",
+    "solo-dev",
+    "ai-agents"
+  ]
 }
