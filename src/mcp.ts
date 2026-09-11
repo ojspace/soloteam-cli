@@ -1,9 +1,15 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { z } from "zod";
 import { homePath } from "./agents";
+
+/** True when the configured remote means "local-only, no git remote". */
+export function isLocalRemote(remote: string): boolean {
+  const trimmed = remote.trim().toLowerCase();
+  return trimmed === "" || trimmed === "local" || trimmed === "none";
+}
 
 const McpServerSchema = z.object({
   name: z.string().min(1),
@@ -18,7 +24,10 @@ const McpServerSchema = z.object({
 export type McpServer = z.infer<typeof McpServerSchema>;
 
 const McpFileSchema = z.object({
-  servers: z.array(McpServerSchema).default([]),
+  servers: z
+    .array(McpServerSchema)
+    .nullish()
+    .transform((v) => v ?? []),
 });
 
 export function mcpFilePath(root: string): string {
@@ -30,11 +39,44 @@ export async function loadMcpServers(root: string): Promise<McpServer[]> {
   const path = mcpFilePath(root);
   if (!existsSync(path)) return [];
   const raw = await readFile(path, "utf8");
-  const parsed = McpFileSchema.parse(parseYaml(raw));
+  const parsed = McpFileSchema.parse((parseYaml(raw) ?? {}) as unknown);
   return parsed.servers.filter((server) => {
     if (server.transport === "stdio") return Boolean(server.command);
     return Boolean(server.url);
   });
+}
+
+/** Persist servers to `mcp.yaml` (sorted by name, keeps file human-editable). */
+export async function saveMcpServers(root: string, servers: McpServer[]): Promise<string> {
+  const path = mcpFilePath(root);
+  const sorted = [...servers].sort((a, b) => a.name.localeCompare(b.name));
+  const parsed = McpFileSchema.parse({ servers: sorted });
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, stringifyYaml(parsed), "utf8");
+  return path;
+}
+
+/** Add or replace a single server by name. Returns the file path. */
+export async function upsertMcpServer(root: string, server: McpServer): Promise<string> {
+  const existing = await loadMcpServers(root);
+  const next = [...existing.filter((entry) => entry.name !== server.name), server];
+  return saveMcpServers(root, next);
+}
+
+/** Remove a single server from `mcp.yaml` by name. Returns true when removed. */
+export async function removeMcpServerFromFile(root: string, name: string): Promise<boolean> {
+  const existing = await loadMcpServers(root);
+  if (!existing.some((entry) => entry.name === name)) return false;
+  await saveMcpServers(
+    root,
+    existing.filter((entry) => entry.name !== name),
+  );
+  return true;
+}
+
+/** Validate + normalize a raw server object (throws on bad input). */
+export function parseMcpServer(raw: unknown): McpServer {
+  return McpServerSchema.parse(raw);
 }
 
 // ─── Shared JSON shape (Claude Code + Cursor) ───────────────────────────────
@@ -255,4 +297,131 @@ export async function injectMcpEverywhere(servers: McpServer[], agentIds?: strin
     results.push({ agent: "codex", path: codexConfigPath(), servers: await injectCodexMcp(servers) });
   }
   return results;
+}
+
+// ─── Import (agent configs → mcp.yaml, no hand-editing) ──────────────────────
+
+interface RawJsonServer {
+  command?: unknown;
+  args?: unknown;
+  env?: unknown;
+  type?: unknown;
+  url?: unknown;
+  headers?: unknown;
+}
+
+function toServerFromJson(name: string, raw: RawJsonServer): McpServer | null {
+  try {
+    if (typeof raw.command === "string" && raw.command.length > 0) {
+      return McpServerSchema.parse({
+        name,
+        transport: "stdio",
+        command: raw.command,
+        args: Array.isArray(raw.args) ? raw.args.filter((a): a is string => typeof a === "string") : [],
+        env:
+          raw.env && typeof raw.env === "object"
+            ? Object.fromEntries(Object.entries(raw.env as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
+            : {},
+      });
+    }
+    if (typeof raw.url === "string" && raw.url.length > 0) {
+      const transport = raw.type === "sse" ? "sse" : "http";
+      return McpServerSchema.parse({
+        name,
+        transport,
+        url: raw.url,
+        headers:
+          raw.headers && typeof raw.headers === "object"
+            ? Object.fromEntries(
+                Object.entries(raw.headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+              )
+            : {},
+      });
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Read a `{ mcpServers: {...} }` JSON file (Claude, Cursor) into servers. */
+export async function importFromJsonFile(path: string): Promise<McpServer[]> {
+  const data = await readJson(path);
+  const table = (data.mcpServers ?? {}) as Record<string, unknown>;
+  const out: McpServer[] = [];
+  for (const [name, raw] of Object.entries(table)) {
+    const server = toServerFromJson(name, (raw ?? {}) as RawJsonServer);
+    if (server) out.push(server);
+  }
+  return out;
+}
+
+/** Read OpenCode's `{ mcp: {...} }` config into servers. */
+export async function importFromOpencodeFile(path: string): Promise<McpServer[]> {
+  const data = await readJson(path);
+  const table = (data.mcp ?? {}) as Record<string, unknown>;
+  const out: McpServer[] = [];
+  for (const [name, rawValue] of Object.entries(table)) {
+    const raw = (rawValue ?? {}) as Record<string, unknown>;
+    try {
+      if (raw.type === "local" && Array.isArray(raw.command) && raw.command.length > 0) {
+        const [command, ...args] = (raw.command as unknown[]).filter(
+          (a): a is string => typeof a === "string",
+        );
+        if (!command) continue;
+        out.push(
+          McpServerSchema.parse({
+            name,
+            transport: "stdio",
+            command,
+            args,
+            env:
+              raw.environment && typeof raw.environment === "object"
+                ? Object.fromEntries(
+                    Object.entries(raw.environment as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+                  )
+                : {},
+          }),
+        );
+      } else if ((raw.type === "remote" || typeof raw.url === "string") && typeof raw.url === "string") {
+        out.push(
+          McpServerSchema.parse({
+            name,
+            transport: "http",
+            url: raw.url,
+            headers:
+              raw.headers && typeof raw.headers === "object"
+                ? Object.fromEntries(
+                    Object.entries(raw.headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+                  )
+                : {},
+          }),
+        );
+      }
+    } catch {
+      continue;
+    }
+  }
+  return out;
+}
+
+/**
+ * Import servers already configured in installed agents.
+ * `only` limits to e.g. ["claude","cursor","opencode","codex"].
+ */
+export async function importFromAgents(only?: string[]): Promise<{ agent: string; servers: McpServer[] }[]> {
+  const want = (id: string): boolean => !only || only.includes(id);
+  const out: { agent: string; servers: McpServer[] }[] = [];
+  if (want("claude") && existsSync(claudeJsonPath())) {
+    out.push({ agent: "claude", servers: await importFromJsonFile(claudeJsonPath()) });
+  }
+  if (want("cursor") && existsSync(cursorMcpPath())) {
+    out.push({ agent: "cursor", servers: await importFromJsonFile(cursorMcpPath()) });
+  }
+  if (want("opencode") && existsSync(opencodeConfigPath())) {
+    out.push({ agent: "opencode", servers: await importFromOpencodeFile(opencodeConfigPath()) });
+  }
+  // Codex TOML is append-only managed by soloteam; hand-written Codex servers
+  // stay in place and are picked up on next inject — no import needed.
+  return out;
 }

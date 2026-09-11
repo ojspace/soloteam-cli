@@ -3,6 +3,7 @@ import type { ParsedArgs } from "../args";
 import { flagString } from "../args";
 import { loadConfig } from "../config";
 import { commitTracked, porcelainStatus, pushBranch } from "../git";
+import { isLocalRemote } from "../mcp";
 import { resolveRoot } from "../paths";
 
 export async function cmdPush(args: ParsedArgs): Promise<void> {
@@ -29,6 +30,8 @@ export async function cmdPush(args: ParsedArgs): Promise<void> {
     }
     return;
   }
+
+  if (isLocalRemote(config.remote)) return; // local-only: commit is the sync
 
   const pushed = await pushBranch(root, config.branch);
   if (!pushed.ok && strict) {

@@ -9,38 +9,51 @@ import { cmdHooks } from "./commands/hooks";
 import { cmdInit } from "./commands/init";
 import { cmdLearn } from "./commands/learn";
 import { cmdMcp } from "./commands/mcp";
+import { cmdMemory } from "./commands/memory";
 import { cmdPull } from "./commands/pull";
 import { cmdPush } from "./commands/push";
 import { cmdRecall } from "./commands/recall";
 import { cmdStatus } from "./commands/status";
+import { cmdTimeline } from "./commands/timeline";
 import { cmdUninstall } from "./commands/uninstall";
 
 const HELP = `soloteam — one developer, every machine, every agent in sync
 
-Sync (git repo of truth, direct to main):
-  soloteam init <git-remote-url> [--dir <path>] [--track a,b,c]
-  soloteam pull [--dir <path>] [--strict]
-  soloteam push [--dir <path>] [--message <msg>] [--strict]
-  soloteam status [--dir <path>]
+Start here:
+  soloteam init --local                    # this machine only (fastest)
+  soloteam init <git-url>                  # sync across machines (private repo or VPS)
+  soloteam doctor                          # verify wiring
 
-Agents, hooks, MCP (declared once, delivered on pull):
+Daily sync (automatic via hooks, manual when you want):
+  soloteam pull [--strict]
+  soloteam push [--message <msg>]
+  soloteam status
+
+One config, every agent (auto-detected: Claude, Codex, Cursor, OpenCode…):
   soloteam agents [--all]
-  soloteam hooks [install|list|remove] [--dir <path>] [--settings <path>]
-  soloteam mcp [list|inject|remove] [--dir <path>] [--agent <id>]
+  soloteam hooks [install|list|remove]
+  soloteam mcp list                        # what's declared + where it lands
+  soloteam mcp add --name <id> --command <bin> [--args "a,b"] [--env K=V]
+  soloteam mcp add --name <id> --url <https-url> [--header "K=V"]
+  soloteam mcp import --from claude,cursor,opencode
+  soloteam mcp inject | soloteam mcp remove [<name>]
   soloteam exclude [list|add <path>|remove <path>]
 
-Memory (local-first: learnings + recall + sessions):
-  soloteam learn "Title" [--body <text>|--file <path>]
-  soloteam recall <query> [--limit N] | soloteam recall [enable|disable|status]
-  soloteam friction-check [--dir <path>]   (reads Stop-hook JSON from stdin)
+Memory (local files, no daemon, no sign-in):
+  soloteam learn "Title" [--body <text>|--file <path>]   # save a lesson
+  soloteam recall <query> [--limit N]                   # search learnings
+  soloteam recall [enable|disable|status]               # agents auto-search
+  soloteam timeline [--limit N]                         # newest learnings + sessions
+  soloteam memory import (--from-claude-mem | --from <dir>)
+  soloteam friction-check                  (Stop-hook scorer, nudges once per session)
   soloteam session save [--note <text>] [--push]
   soloteam digest [--since YYYY-MM-DD]
 
 Setup & health:
-  soloteam doctor [--dir <path>] [--settings <path>]
-  soloteam uninstall [--dir <path>] [--purge]
+  soloteam doctor
+  soloteam uninstall [--purge]
 
---dir defaults to $SOLOTEAM_DIR or ~/.claude.
+--dir defaults to $SOLOTEAM_DIR or ~/.claude. SOLOTEAM_HOME overrides home (tests).
 `;
 
 async function main(): Promise<void> {
@@ -79,6 +92,12 @@ async function main(): Promise<void> {
       break;
     case "recall":
       await cmdRecall(parseArgs(rest));
+      break;
+    case "timeline":
+      await cmdTimeline(parseArgs(rest));
+      break;
+    case "memory":
+      await cmdMemory(parseArgs(rest));
       break;
     case "friction-check":
       await cmdFrictionCheck(parseArgs(rest));
