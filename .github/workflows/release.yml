@@ -1,0 +1,47 @@
+name: Release
+
+# Binary distribution via GitHub Releases (no registry needed):
+#   1. Make sure "version" in package.json matches the tag you are about to cut.
+#   2. git tag v0.3.0 && git push origin v0.3.0
+#   3. This workflow verifies, cross-compiles standalone binaries with
+#      `bun build --compile`, and attaches them to the GitHub Release.
+#
+# Users install with:
+#   curl -fsSL https://raw.githubusercontent.com/ojspace/soloteam-cli/main/install.sh | bash
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release + upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun test
+      - name: Compile standalone binaries
+        run: |
+          mkdir -p dist
+          bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/soloteam-darwin-arm64
+          bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/soloteam-darwin-x64
+          bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/soloteam-linux-x64
+          bun build src/index.ts --compile --target=bun-linux-arm64 --outfile dist/soloteam-linux-arm64
+          (cd dist && sha256sum soloteam-* > SHA256SUMS.txt)
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            dist/soloteam-darwin-arm64 \
+            dist/soloteam-darwin-x64 \
+            dist/soloteam-linux-x64 \
+            dist/soloteam-linux-arm64 \
+            dist/SHA256SUMS.txt
