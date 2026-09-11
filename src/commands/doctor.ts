@@ -5,7 +5,7 @@ import { flagString } from "../args";
 import { selectAgents } from "../agents";
 import { loadConfig } from "../config";
 import { isGitRepo, remoteReachable } from "../git";
-import { loadMcpServers } from "../mcp";
+import { isLocalRemote, loadMcpServers } from "../mcp";
 import { opencodePluginInstalled, opencodePluginPath } from "../opencode";
 import { configPath, resolveRoot } from "../paths";
 import { recallEnabled } from "../recall";
@@ -29,8 +29,12 @@ export async function cmdDoctor(args: ParsedArgs): Promise<void> {
   try {
     const config = await loadConfig(root);
     checks.push({ label: "config valid", pass: true });
-    const reachable = await remoteReachable(root);
-    checks.push({ label: "remote reachable", pass: reachable, detail: config.remote });
+    if (isLocalRemote(config.remote)) {
+      checks.push({ label: "remote", pass: true, detail: "local-only (no remote configured)" });
+    } else {
+      const reachable = await remoteReachable(root);
+      checks.push({ label: "remote reachable", pass: reachable, detail: config.remote });
+    }
 
     const missing = DEFAULT_TRACK.filter((entry) => !config.track.includes(entry));
     checks.push({

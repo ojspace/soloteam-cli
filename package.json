@@ -1,6 +1,6 @@
 {
   "name": "soloteam-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "One developer, every machine, every agent in sync. Config sync, multi-agent fan-out, MCP + hooks distribution, and local-first memory (learnings, recall, digest) for solo agent-CLI setups.",
   "type": "module",
   "bin": {

@@ -6,7 +6,7 @@ import { loadConfig } from "../config";
 import { fanoutToAgents } from "../fanout";
 import { currentHead, diffNames, fetch, ffMerge, porcelainStatus } from "../git";
 import { installHooks } from "../hooks";
-import { injectMcpEverywhere, loadMcpServers } from "../mcp";
+import { injectMcpEverywhere, isLocalRemote, loadMcpServers } from "../mcp";
 import { syncMirrors } from "../mirror";
 import { injectOpencodePlugin, opencodePluginInstalled } from "../opencode";
 import { resolveRoot } from "../paths";
@@ -34,27 +34,31 @@ export async function cmdPull(args: ParsedArgs): Promise<void> {
     return;
   }
 
+  const localOnly = isLocalRemote(config.remote);
   const before = await currentHead(root);
-  const fetched = await fetch(root, config.branch);
-  if (!fetched.ok) {
-    if (strict) {
-      console.error("soloteam pull: could not reach remote");
-      process.exitCode = 1;
+  let changed: string[] = [];
+  if (!localOnly) {
+    const fetched = await fetch(root, config.branch);
+    if (!fetched.ok) {
+      if (strict) {
+        console.error("soloteam pull: could not reach remote");
+        process.exitCode = 1;
+      }
+      return;
     }
-    return;
-  }
 
-  const merged = await ffMerge(root, config.branch);
-  if (!merged.ok) {
-    if (strict) {
-      console.error("soloteam pull: fast-forward merge failed (local history diverged?)");
-      process.exitCode = 1;
+    const merged = await ffMerge(root, config.branch);
+    if (!merged.ok) {
+      if (strict) {
+        console.error("soloteam pull: fast-forward merge failed (local history diverged?)");
+        process.exitCode = 1;
+      }
+      return;
     }
-    return;
-  }
 
-  const after = await currentHead(root);
-  const changed = before !== after ? await diffNames(root, before, after) : [];
+    const after = await currentHead(root);
+    changed = before !== after ? await diffNames(root, before, after) : [];
+  }
 
   // Deliver everything downstream: mirrors, per-agent fan-out, hooks, MCP.
   await syncMirrors(root, config.track, config.mirrors);

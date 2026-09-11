@@ -53,7 +53,8 @@ export async function cmdFrictionCheck(args: ParsedArgs): Promise<void> {
     .join(", ");
 
   console.error(
-    `[friction] this session may be worth saving to memory (${reasons}). ` +
-      `If something surprising happened — a correction, a dead end, a fix that worked — say so and save it.`,
+    `[soloteam] rough session? (${reasons}). Save the lesson while it's fresh:\n` +
+      `  soloteam learn "What I fixed" --body "what broke, what worked"\n` +
+      `  soloteam session save --note "one-line summary"   # feeds your weekly digest`,
   );
 }
