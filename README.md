@@ -16,9 +16,19 @@ Built solo-first, for a team of one.
 ## Install
 
 ```bash
-npm install -g soloteam-cli
-# needs Node 18+ (or Bun). That's it.
+curl -fsSL https://raw.githubusercontent.com/ojspace/soloteam-cli/main/install.sh | bash
+# standalone binary → ~/.local/bin. No Node, no Bun, no registry needed.
+# macOS (arm64/x64) and Linux (x64/arm64) supported.
 ```
+
+Other ways in:
+
+```bash
+npm install -g soloteam-cli              # once published to npm
+npm install -g github:ojspace/soloteam-cli  # straight from git (needs Bun to build)
+```
+
+Needs Node 18+ (or Bun) only for the npm/git routes — the binary runs on its own.
 
 ## Use it in 60 seconds (local-first)
 

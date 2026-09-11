@@ -12,9 +12,13 @@ name: Publish
 #     Workflow filename:    publish.yml
 #     Allowed actions:      allow BOTH staged and direct `npm publish`
 
+# Dormant until the package exists on the registry AND a trusted publisher is
+# configured (package Settings → Trusted publishing). Kept on manual dispatch
+# so tags don't produce failing runs in the meantime. Invoke from the Actions
+# tab when ready — or keep shipping binaries via release.yml instead.
+
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   id-token: write # Required for npm OIDC trusted publishing
