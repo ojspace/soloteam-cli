@@ -11,7 +11,7 @@
 
 Write your `CLAUDE.md`, skills, hooks, and MCP servers **once**. Use them in Claude Code, Codex, Cursor, OpenCode, and 8 more agents — on this machine and every other one. No daemon, no sign-in, no server. Just git + local files.
 
-Inspired by [Tencent's teamai-cli](https://github.com/Tencent/teamai-cli) (built for teams), cut down for a team of one.
+Built solo-first, for a team of one.
 
 ## Install
 
@@ -232,4 +232,4 @@ MIT — see [LICENSE](LICENSE).
 
 ## Contributing
 
-Issues and PRs welcome. Scope rule: solo leverage only. If a feature needs a second person (reviews, roles, per-member analytics), it belongs in teamai-cli, not here.
+Issues and PRs welcome. Scope rule: solo leverage only. If a feature needs a second person (reviews, roles, per-member analytics), it belongs in a team-scoped tool, not here.

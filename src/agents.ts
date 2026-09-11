@@ -5,8 +5,8 @@ import { userHome } from "./paths";
 /**
  * Agent registry: the coding agents soloteam can fan out to.
  *
- * Skills-dir layouts follow the same `~/.<id>/skills` convention teamai-cli
- * documents in its known-agents registry; every agent below also reads
+ * Skills-dir layouts follow the `~/.<id>/skills` convention every major
+ * agent reads; every agent below also reads
  * `AGENTS.md` at its home dir, which is where the synced CLAUDE.md lands.
  */
 

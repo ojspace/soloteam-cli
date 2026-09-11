@@ -5,9 +5,8 @@ import { homePath } from "./agents";
 
 /**
  * OpenCode hook bridge. OpenCode has no settings.json-style shell hook list —
- * it auto-loads plugins exporting a function that returns a Hooks object
- * (see teamai-cli's opencode-hooks for the same mechanism). soloteam's plugin
- * is deliberately tiny: session start pulls, idle pushes.
+ * it auto-loads plugins exporting a function that returns a Hooks object.
+ * soloteam's plugin is deliberately tiny: session start pulls, idle pushes.
  */
 
 export const OPENCODE_PLUGIN_FILE = "soloteam-hooks.ts";
